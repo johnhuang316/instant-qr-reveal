@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaReveal QR Draw</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="participantInterface">
+            <div class="main-content">
+                <h1>InstaReveal QR Draw</h1>
+                <p class="subtitle">Scan the QR code to participate in the draw!</p>
+                <div id="qrCodeContainer" style="display: none;">
+                    <h2>Your QR Code</h2>
+                    <div id="qrCode"></div>
+                    <p class="status-text">Waiting for scan...</p>
+                </div>
+                <div id="participantResultContainer" style="display: none;">
+                    <h2>Draw Result</h2>
+                    <img id="resultImage" src="" alt="Draw Result" style="max-width: 100%;">
+                    <p id="resultMessage"></p>
+                </div>
+            </div>
+        </div>
+        <div id="operatorInterface" style="display: none;">
+            <h1>Operator Interface</h1>
+            <button id="startScanBtn">Start Scan</button>
+            <div id="cameraContainer" style="display: none;">
+                <h2>Camera Preview</h2>
+                <video id="cameraPreview" autoplay playsinline style="width: 100%; max-width: 500px;"></video>
+                <p id="scanStatus">Scanning for QR Code...</p>
+            </div>
+            <div id="operatorResultContainer" style="display: none;">
+                <h2>Scan Result</h2>
+                <p id="scanResultMessage"></p>
+                <button id="scanAgainBtn">Scan Again</button>
+            </div>
+        </div>
+        <button id="adminPanelBtn" style="margin-top: 20px;">Admin Panel</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

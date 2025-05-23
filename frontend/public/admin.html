@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaReveal QR Draw - Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .image-item {
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            position: relative;
+        }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 5px auto;
+        }
+        .image-item button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .image-item button:hover {
+            background-color: #d32f2f;
+        }
+        .image-item .filename {
+            font-size: 0.8em;
+            word-break: break-all;
+        }
+        .info-box {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Admin Interface</h1>
+        
+        <div class="info-box">
+            <p><strong>R2 Public Endpoint:</strong> <span id="displayR2Endpoint">Loading...</span></p>
+            <p>此 URL 由 Worker 動態生成，用於訪問 R2 中的圖片。</p>
+        </div>
+
+        <div id="imageManagement" style="margin-top: 30px;">
+            <h2>Manage Prize Images (R2)</h2>
+            <input type="file" id="imageUploadInput" accept="image/*" multiple>
+            <button id="uploadImageBtn" style="margin-top: 10px;">Upload Selected Images</button>
+            <p id="uploadStatus" style="margin-top: 10px;"></p>
+
+            <h3>Current Images in R2</h3>
+            <div id="imageGrid" class="image-grid">
+                <!-- Images will be loaded here -->
+            </div>
+            <p id="imageGridStatus" style="margin-top: 10px;"></p>
+        </div>
+
+        <button id="backToMain" style="margin-top: 20px;">Back to Main</button>
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>

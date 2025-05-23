@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaReveal QR Draw - Participant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>InstaReveal QR Draw</h1>
+        <button id="generateQrBtn">Generate QR Code</button>
+        <div id="qrCodeContainer" style="display: none;">
+            <h2>Your QR Code</h2>
+            <div id="qrCode"></div>
+            <p>Waiting for scan...</p>
+        </div>
+        <div id="resultContainer" style="display: none;">
+            <h2>Draw Result</h2>
+            <img id="resultImage" src="" alt="Draw Result" style="max-width: 100%;">
+            <p id="resultMessage"></p>
+            <button id="generateAgainBtn">Generate Another QR Code</button>
+        </div>
+    </div>
+    <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <script src="participant.js"></script>
+</body>
+</html>

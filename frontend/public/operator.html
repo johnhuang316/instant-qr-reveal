@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaReveal QR Draw - Operator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Operator Interface</h1>
+        <button id="startScanBtn">Start Scan</button>
+        <div id="cameraContainer" style="display: none;">
+            <h2>Camera Preview</h2>
+            <video id="cameraPreview" autoplay playsinline style="width: 100%; max-width: 500px;"></video>
+            <p id="scanStatus">Scanning for QR Code...</p>
+        </div>
+        <div id="resultContainer" style="display: none;">
+            <h2>Scan Result</h2>
+            <p id="scanResultMessage"></p>
+            <button id="scanAgainBtn">Scan Again</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="operator.js"></script>
+</body>
+</html>
