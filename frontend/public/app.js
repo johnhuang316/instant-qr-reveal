@@ -16,13 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // DOM elements for participant interface
     const participantInterface = document.getElementById('participantInterface');
-    const generateQrBtn = document.getElementById('generateQrBtn');
     const qrCodeContainer = document.getElementById('qrCodeContainer');
     const qrCode = document.getElementById('qrCode');
     const participantResultContainer = document.getElementById('participantResultContainer');
     const resultImage = document.getElementById('resultImage');
     const resultMessage = document.getElementById('resultMessage');
-    const generateAgainBtn = document.getElementById('generateAgainBtn');
     const statusText = document.querySelector('#qrCodeContainer .status-text'); // Get status text element
     const loadingIndicator = document.getElementById('loadingIndicator'); // Get loading indicator element
     
@@ -205,14 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 // Calculate dynamic QR code size based on the actual rendered width of the qrCode element
                 // This ensures the QR code is drawn with a concrete pixel size that fits its container.
-                const qrCodePixelSize = qrCode.clientWidth; 
-                const finalQrCodeSize = Math.max(qrCodePixelSize - 60, 100); // Subtract an even larger buffer to prevent clipping
+                const finalQrCodeSize = 300; // Fixed size for QR code to match container's max-width
                 console.log('Calculated QR code pixel size:', finalQrCodeSize);
 
                 const qrCodeInstance = new QRCodeStyling({
                     data: sessionId,
-                    width: finalQrCodeSize, // Dynamic width in pixels
-                    height: finalQrCodeSize, // Dynamic height in pixels
                     type: "svg",
                     backgroundOptions: {
                         color: "transparent" // Set QR code background to transparent
@@ -323,11 +318,5 @@ document.addEventListener('DOMContentLoaded', () => {
         generateQrCodeAndConnect();
     }
     
-    generateAgainBtn.style.display = 'none'; // Ensure the button is hidden if it somehow appears
 
-    // No longer need generateAgainBtn event listener as it's removed from HTML
-    // generateAgainBtn.addEventListener('click', () => {
-    //     participantResultContainer.style.display = 'none';
-    //     generateQrCodeAndConnect(); // Regenerate QR code on click
-    // });
 });
