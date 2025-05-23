@@ -98,3 +98,4 @@ worker/wrangler.toml
 
 # Code Index MCP cache directory
 .code_indexer/
+worker/wrangler.toml
