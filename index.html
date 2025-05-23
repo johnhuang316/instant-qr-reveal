@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaReveal QR Draw</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #qr-code-display {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            word-break: break-all;
+        }
+        #status-message {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #result-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>InstaReveal QR Draw</h1>
+        <div id="qr-code-display">Generating session...</div>
+        <div id="status-message">Please wait.</div>
+        <img id="result-image" alt="Result Image">
+    </div>
+    <script src="app.js" defer></script>
+</body>
+</html>
