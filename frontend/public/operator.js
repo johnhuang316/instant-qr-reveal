@@ -85,9 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Show result temporarily, then revert to scanning status
             resultContainer.style.display = 'block';
-            if (result.status === 'success') {
+            if (result.status === 1) { // 1 for success
                 scanResultMessage.textContent = `Scan successful: ${sessionId}. Result pushed to participant.`;
-            } else {
+            } else if (result.status === 2) { // 2 for error
                 scanResultMessage.textContent = `Error: ${result.message || 'Failed to process scan.'}`;
             }
             // Hide result message after a few seconds and resume scanning status

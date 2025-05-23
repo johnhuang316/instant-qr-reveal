@@ -1,7 +1,10 @@
 import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
 
 // Cloudflare Worker script for InstaReveal QR Draw System
-// Updated to use HTTP polling instead of WebSocket connections
+// Handles HTTP API requests and WebSocket connections
+
+// Global Map to store sessionId to WebSocket connection mapping
+const webSocketConnections = new Map();
 
 export default {
   async fetch(request, env, ctx) {
@@ -14,8 +17,67 @@ export default {
         ASSET_NAMESPACE: env.__STATIC_CONTENT,
       });
     } catch (e) {
-      // If static asset not found, proceed with API routing
+      // If static asset not found, proceed with API/WebSocket routing
       console.log(`Static asset not found for ${url.pathname}: ${e.message}`);
+    }
+
+    // WebSocket upgrade request handling
+    if (url.pathname === '/ws') {
+      if (request.headers.get('Upgrade') !== 'websocket') {
+        return new Response('Expected WebSocket upgrade', { status: 426 });
+      }
+      const { 0: clientWs, 1: serverWs } = new WebSocketPair();
+
+      // sessionId can be passed via query param or sent as the first message after connection
+      const sessionIdFromQuery = url.searchParams.get('sessionId');
+
+      serverWs.accept();
+
+      // If sessionId is passed via query param, register it immediately
+      if (sessionIdFromQuery) {
+          webSocketConnections.set(sessionIdFromQuery, serverWs);
+          console.log(`WebSocket registered via query param for session: ${sessionIdFromQuery}`);
+      }
+
+      serverWs.addEventListener('message', async (event) => {
+        try {
+          const messageData = JSON.parse(event.data);
+          if (messageData.type === 'registerSession' && messageData.sessionId) {
+            // Associate this WebSocket with the sessionId (if not already registered via query param)
+            if (!webSocketConnections.has(messageData.sessionId)) {
+                webSocketConnections.set(messageData.sessionId, serverWs);
+                console.log(`WebSocket registered via message for session: ${messageData.sessionId}`);
+            }
+          }
+        } catch (e) {
+          console.error('Error processing message from client:', e);
+        }
+      });
+
+      serverWs.addEventListener('close', () => {
+        console.log('WebSocket closed');
+        // Clean up the corresponding connection from webSocketConnections
+        for (const [sid, ws] of webSocketConnections.entries()) {
+          if (ws === serverWs) {
+            webSocketConnections.delete(sid);
+            console.log(`WebSocket connection removed for session: ${sid}`);
+            break;
+          }
+        }
+      });
+      serverWs.addEventListener('error', (err) => {
+        console.error('WebSocket error:', err);
+        // Cleanup logic same as 'close'
+        for (const [sid, ws] of webSocketConnections.entries()) {
+          if (ws === serverWs) {
+            webSocketConnections.delete(sid);
+            console.log(`WebSocket connection removed due to error for session: ${sid}`);
+            break;
+          }
+        }
+      });
+
+      return new Response(null, { status: 101, webSocket: clientWs });
     }
 
     // HTTP API Routing
@@ -85,24 +147,6 @@ export default {
 
     return new Response('Not Found', { status: 404 });
   },
-
-  async scheduled(event, env, ctx) {
-    console.log('Running scheduled cleanup task...');
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    try {
-      const { success, error } = await env.SESSIONS_DB.prepare(
-        `DELETE FROM sessions WHERE created_at < ?`
-      ).bind(twentyFourHoursAgo).run();
-
-      if (success) {
-        console.log('Old sessions cleanup successful.');
-      } else {
-        console.error('Old sessions cleanup failed:', error);
-      }
-    } catch (e) {
-      console.error('Error during scheduled cleanup:', e);
-    }
-  },
 };
 
 // KV key for storing prize settings (no longer used for R2 endpoint or image keys)
@@ -143,16 +187,15 @@ async function handleGenerateQrSession(request, env) {
   // Generate a globally unique session ID
   const sessionId = crypto.randomUUID(); // Built-in crypto in Cloudflare Workers
 
-  // Store the session ID and its initial state in D1
+  // Store the session ID and its initial state in Workers KV
   const sessionData = {
-    session_id: sessionId,
-    status: 0, // 0 for pending
-    created_at: new Date().toISOString(),
-    last_polled_at: new Date().toISOString()
+    sessionId: sessionId,
+    status: "pending",
+    createdAt: new Date().toISOString()
   };
-  await env.SESSIONS_DB.prepare(
-    `INSERT INTO sessions (session_id, status, created_at, last_polled_at) VALUES (?, ?, ?, ?)`
-  ).bind(sessionData.session_id, sessionData.status, sessionData.created_at, sessionData.last_polled_at).run();
+  // Ensure INSTAREVEAL_SESSIONS is correctly bound in wrangler.toml
+  await env.INSTAREVEAL_SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData));
+  // Note KV write limits
 
   // Return the session ID to the frontend
   return new Response(JSON.stringify({ sessionId: sessionId }), {
@@ -167,18 +210,17 @@ async function handlePastorScan(request, env) {
       return new Response(JSON.stringify({ status: "error", message: "sessionId is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Read the state of this sessionId from D1
-    const { results } = await env.SESSIONS_DB.prepare(
-        `SELECT * FROM sessions WHERE session_id = ?`
-    ).bind(sessionId).all();
-    if (!results || results.length === 0) {
+    // Read the state of this sessionId from Workers KV
+    const kvKey = `session:${sessionId}`;
+    const sessionDataString = await env.INSTAREVEAL_SESSIONS.get(kvKey);
+    if (!sessionDataString) {
       return new Response(JSON.stringify({ status: "error", message: "Invalid session" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
-    const sessionData = results[0];
+    const sessionData = JSON.parse(sessionDataString);
 
     // Validate state
-    if (sessionData.status !== 0) { // 0 for pending
-      return new Response(JSON.stringify({ status: 2, message: "Session already drawn or invalid state" }), { status: 400, headers: { 'Content-Type': 'application/json' } }); // 2 for error
+    if (sessionData.status !== "pending") {
+      return new Response(JSON.stringify({ status: "error", message: "Session already drawn or invalid state" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     // Get list of images from R2 bucket
@@ -186,7 +228,7 @@ async function handlePastorScan(request, env) {
     const prizeImageKeys = listed.objects.map(obj => obj.key);
 
     if (prizeImageKeys.length === 0) {
-      return new Response(JSON.stringify({ status: 2, message: "No prize images found in R2 bucket. Please upload images via admin panel." }), { status: 500, headers: { 'Content-Type': 'application/json' } }); // 2 for error
+      return new Response(JSON.stringify({ status: "error", message: "No prize images found in R2 bucket. Please upload images via admin panel." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
     // Dynamically construct the R2 public endpoint
@@ -194,24 +236,41 @@ async function handlePastorScan(request, env) {
     const bucketName = env.PRIZE_IMAGE_BUCKET_NAME;
 
     if (!accountId || !bucketName) {
-      return new Response(JSON.stringify({ status: 2, message: "Cloudflare Account ID or R2 Bucket Name not configured as environment variables." }), { status: 500, headers: { 'Content-Type': 'application/json' } }); // 2 for error
+      return new Response(JSON.stringify({ status: "error", message: "Cloudflare Account ID or R2 Bucket Name not configured as environment variables." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
     const r2PublicEndpoint = `https://pub-${accountId}.r2.dev`;
 
     // Execute draw
     const selectedImageKey = prizeImageKeys[Math.floor(Math.random() * prizeImageKeys.length)];
-    const imageUrl = `${r2PublicEndpoint}/${selectedImageKey}`; // Use shorter name
+    const resultImageUrl = `${r2PublicEndpoint}/${selectedImageKey}`;
 
-    // Update D1 state
-    sessionData.status = 1; // 1 for drawn
-    sessionData.result_image_url = imageUrl; // Use result_image_url as per schema
-    sessionData.drawn_at = new Date().toISOString(); // Use drawn_at as per schema
-    await env.SESSIONS_DB.prepare(
-        `UPDATE sessions SET status = ?, drawn_at = ?, result_image_url = ?, last_polled_at = ? WHERE session_id = ?`
-    ).bind(sessionData.status, sessionData.drawn_at, sessionData.result_image_url, new Date().toISOString(), sessionId).run();
+    // Update KV state
+    sessionData.status = "drawn";
+    sessionData.resultImageUrl = resultImageUrl;
+    sessionData.drawnAt = new Date().toISOString();
+    await env.INSTAREVEAL_SESSIONS.put(kvKey, JSON.stringify(sessionData));
+    // Note KV write limits
+
+    // Trigger result push: Directly find the corresponding WebSocket connection and push
+    const targetWebSocket = webSocketConnections.get(sessionId);
+    if (targetWebSocket) {
+      try {
+          targetWebSocket.send(JSON.stringify({
+            type: "drawResult",
+            imageUrl: resultImageUrl,
+            message: "Congratulations!"
+          }));
+          console.log(`Result sent to session: ${sessionId}`);
+      } catch (e) {
+          console.error(`Failed to send message to WebSocket for session ${sessionId}:`, e);
+          webSocketConnections.delete(sessionId);
+      }
+    } else {
+      console.warn(`No active WebSocket found for session: ${sessionId}. Result stored in KV.`);
+    }
 
     // Return success message to the operator end
-    return new Response(JSON.stringify({ status: 1, message: "Result processed and stored" }), { // 1 for success
+    return new Response(JSON.stringify({ status: "success", message: "Result processed and push attempted" }), {
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -291,45 +350,22 @@ async function handleGetSessionStatus(request, env) {
       return new Response(JSON.stringify({ status: "error", message: "sessionId query parameter is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { results } = await env.SESSIONS_DB.prepare(
-        `SELECT status, result_image_url, last_polled_at FROM sessions WHERE session_id = ?` // Select last_polled_at for ETag
-    ).bind(sessionId).all();
+    const kvKey = `session:${sessionId}`;
+    const sessionDataString = await env.INSTAREVEAL_SESSIONS.get(kvKey);
 
-    if (!results || results.length === 0) {
-      return new Response(JSON.stringify({ status: 2, message: "Session not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    if (!sessionDataString) {
+      return new Response(JSON.stringify({ status: "error", message: "Session not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const sessionData = results[0];
+    const sessionData = JSON.parse(sessionDataString);
 
-    // Generate ETag based on session status and result image URL
-    const etag = `"${sessionData.status}-${sessionData.result_image_url || ''}-${sessionData.last_polled_at}"`; // Include last_polled_at for freshness
-
-    // Check If-None-Match header
-    const ifNoneMatch = request.headers.get('If-None-Match');
-    if (ifNoneMatch && ifNoneMatch === etag) {
-      // Update last_polled_at even if 304, to keep session alive
-      await env.SESSIONS_DB.prepare(
-          `UPDATE sessions SET last_polled_at = ? WHERE session_id = ?`
-      ).bind(new Date().toISOString(), sessionId).run();
-      return new Response(null, { status: 304, headers: { 'ETag': etag, 'Cache-Control': 'no-cache' } });
-    }
-
-    // Return minimal data for polling efficiency
-    const response = {
-      status: sessionData.status
-    };
-    
-    if (sessionData.status === 1) { // 1 for drawn
-      response.imageUrl = sessionData.result_image_url; // Use shorter name
-    }
-
-    // Update last_polled_at for this session
-    await env.SESSIONS_DB.prepare(
-        `UPDATE sessions SET last_polled_at = ? WHERE session_id = ?`
-    ).bind(new Date().toISOString(), sessionId).run();
-
-    return new Response(JSON.stringify(response), {
-      headers: { 'Content-Type': 'application/json', 'ETag': etag, 'Cache-Control': 'no-cache' },
+    return new Response(JSON.stringify({
+      status: "success",
+      sessionStatus: sessionData.status,
+      resultImageUrl: sessionData.resultImageUrl || null,
+      message: sessionData.message || null
+    }), {
+      headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {

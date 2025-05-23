@@ -1,10 +1,10 @@
 # InstaReveal QR Draw System
 
-A serverless, real-time QR code-based draw system built on the Cloudflare ecosystem. This project enables participants to generate QR codes, connect via WebSocket for real-time updates, and receive draw results, while operators scan QR codes to trigger the draw process.
+A serverless, real-time QR code-based draw system built on the Cloudflare ecosystem. This project enables participants to generate QR codes, receive real-time updates via HTTP polling, and get draw results, while operators scan QR codes to trigger the draw process.
 
 ## Overview
 
-The InstaReveal QR Draw System is designed with a front-end/back-end separated architecture for high availability and scalability. It consists of a unified frontend application (with Participant and Operator interfaces accessible via different paths) and a backend Cloudflare Worker handling API requests and WebSocket communications. Both frontend and backend are deployed to a single Cloudflare Worker for simplicity.
+The InstaReveal QR Draw System is designed with a front-end/back-end separated architecture for high availability and scalability. It consists of a unified frontend application (with Participant, Operator, and Admin interfaces accessible via different paths) and a backend Cloudflare Worker handling API requests and scheduled tasks. Both frontend and backend are deployed to a single Cloudflare Worker for simplicity.
 
 ## File Structure
 
@@ -12,28 +12,33 @@ The InstaReveal QR Draw System is designed with a front-end/back-end separated a
 .
 ├── frontend/                   # Unified Frontend (for Cloudflare deployment)
 │   ├── public/                 # Static file directory for deployment
-│   │   ├── index.html          # Main HTML for both interfaces (Participant by default, Operator via /operator path)
-│   │   ├── style.css           # Shared styling for both interfaces
-│   │   └── app.js              # JavaScript for QR code generation, scanning, and WebSocket with routing logic
+│   │   ├── index.html          # Main HTML for participant interface (Operator via /operator path, Admin via /admin path)
+│   │   ├── style.css           # Shared styling for all interfaces
+│   │   ├── app.js              # Main JavaScript for participant interface (QR code generation, polling, UI updates)
+│   │   ├── operator.js         # JavaScript for operator interface (QR code scanning)
+│   │   ├── admin.js            # JavaScript for admin interface (R2 image management)
+│   │   └── participant.js      # (Optional, if separate participant logic is needed)
 │
 ├── worker/                     # Backend Cloudflare Worker
 │   ├── src/
-│   │   └── index.js            # Worker script (HTTP API & WebSocket logic, also serves static files)
+│   │   └── index.js            # Worker script (HTTP API logic, scheduled tasks, serves static files)
+│   │   └── index-backup.js     # Original Worker script with WebSocket logic (for reference)
 │
-├── .gitignore                  # (Optional) Specifies files to ignore in Git
+├── .gitignore                  # Specifies files to ignore in Git
 ├── README.md                   # Project description and deployment guide (English)
 ├── README_zh-Hant.md          # Project description and deployment guide (Traditional Chinese)
+├── TODO.md                     # Project development roadmap and checklist
 └── Technical Specification.md  # Detailed technical documentation
 ```
 
 ## Technology Stack
 
 - **Frontend Hosting**: Cloudflare Workers (deployed with backend)
-- **Backend Logic & WebSocket**: Cloudflare Workers
-- **State & Data Storage**: Cloudflare Workers KV (for session state and minimal prize information)
+- **Backend Logic & Polling**: Cloudflare Workers
+- **State & Data Storage**: Cloudflare D1 (for session state)
 - **Image Storage**: Cloudflare R2 (for storing draw result images)
-- **QR Code Generation (Frontend)**: JavaScript library (e.g., `qrcode.js`)
-- **QR Code Scanning (Operator End)**: HTML5 QR Code scanning library (e.g., `jsQR`)
+- **QR Code Generation (Frontend)**: JavaScript library (`qr-code-styling.js`)
+- **QR Code Scanning (Operator End)**: JavaScript library (`jsQR`)
 
 ## Deployment Instructions
 
@@ -47,10 +52,10 @@ This section provides essential steps for deploying the InstaReveal QR Draw Syst
 
 ### Steps
 
-The parameters for KV Namespaces and R2 Buckets are configured directly on Cloudflare and then referenced in your `worker/wrangler.toml` file.
+The parameters for D1 Databases and R2 Buckets are configured directly on Cloudflare and then referenced in your `worker/wrangler.toml` file.
 
 1.  **Create Cloudflare Resources**:
-    -   **Workers KV Namespace**: In the Cloudflare Dashboard, go to "Workers" > "KV". Create a namespace (e.g., `INSTAREVEAL_SESSIONS`). Note its **ID**. This KV namespace will be used for both session data and storing prize image settings.
+    -   **D1 Database**: In the Cloudflare Dashboard, go to "Workers" > "D1". Create a database (e.g., `instareveal-sessions`). Note its **ID**. This D1 database will be used for session data.
     -   **R2 Bucket (Optional for Prize Images)**: Go to "R2" in the Cloudflare Dashboard. Create a bucket (e.g., `prize-images`). Note its **name**. This bucket will store your prize images.
 
 2.  **Update Worker Configuration (`worker/wrangler.toml`)**:
@@ -61,10 +66,11 @@ The parameters for KV Namespaces and R2 Buckets are configured directly on Cloud
         main = "src/index.js"
         compatibility_date = "2023-10-01"
 
-        # Bind your KV namespace using the ID obtained from Cloudflare Dashboard
-        [[kv_namespaces]]
-        binding = "YOUR_KV_NAMESPACE" # This is the variable name used in your Worker script (e.g., env.YOUR_KV_NAMESPACE)
-        id = "YOUR_KV_NAMESPACE_ID"  # Replace with the actual ID from Cloudflare Dashboard
+        # Bind your D1 database using the ID obtained from Cloudflare Dashboard
+        [[d1_databases]]
+        binding = "SESSIONS_DB" # This is the variable name used in your Worker script (e.g., env.SESSIONS_DB)
+        database_name = "instareveal-sessions"
+        database_id = "YOUR_D1_DATABASE_ID"  # Replace with the actual ID after creating D1 database
 
         # Bind your R2 bucket using the name obtained from Cloudflare Dashboard
         [[r2_buckets]]
@@ -74,8 +80,17 @@ The parameters for KV Namespaces and R2 Buckets are configured directly on Cloud
         # Specify the directory for static assets (frontend files)
         [assets]
         directory = "../frontend/public"
+
+        # Environment variables for R2 public endpoint derivation
+        [vars]
+        CLOUDFLARE_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID" # Replace with your actual Cloudflare Account ID
+        PRIZE_IMAGE_BUCKET_NAME = "prize-images" # Ensure this matches the bucket_name above
+
+        # Scheduled cleanup trigger (e.g., runs daily at midnight UTC)
+        [triggers]
+        crons = ["0 0 * * *"]
         ```
-    -   **Important**: Replace `YOUR_KV_NAMESPACE_ID` and `prize-images` with the actual ID and name you obtained from the Cloudflare Dashboard. The `binding` names (`YOUR_KV_NAMESPACE`, `PRIZE_IMAGE_BUCKET`) are what you use to access these resources in your `worker/src/index.js` script (e.g., `env.YOUR_KV_NAMESPACE`).
+    -   **Important**: Replace `YOUR_D1_DATABASE_ID` and `YOUR_CLOUDFLARE_ACCOUNT_ID` with the actual IDs you obtained from the Cloudflare Dashboard. The `binding` names (`SESSIONS_DB`, `PRIZE_IMAGE_BUCKET`) are what you use to access these resources in your `worker/src/index.js` script (e.g., `env.SESSIONS_DB`).
 
 3.  **Deploy the Worker**:
     -   Open a terminal and `cd` into the `worker` directory.
@@ -111,7 +126,7 @@ After deploying the Worker, you can manage your prize images and configure the R
 
 ## Troubleshooting
 
--   **WebSocket Connection Issues**: Check Cloudflare Worker logs (`wrangler tail`).
+-   **Polling Issues**: Check Cloudflare Worker logs (`wrangler tail`).
 -   **API Errors**: Ensure Worker script validates inputs and handles errors.
 
 ## Security Considerations
@@ -121,7 +136,7 @@ After deploying the Worker, you can manage your prize images and configure the R
 
 ## Scalability Notes
 
--   Monitor Workers KV and WebSocket concurrent connection limits.
+-   Monitor D1 and Polling concurrent connection limits.
 
 ## Future Enhancements
 
