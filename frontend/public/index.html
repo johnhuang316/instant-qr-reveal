@@ -9,19 +9,25 @@
 <body>
     <div id="app">
         <div id="participantInterface">
-            <div class="main-content">
-                <h1>InstaReveal QR Draw</h1>
-                <p class="subtitle">Scan the QR code to participate in the draw!</p>
-                <div id="qrCodeContainer" style="display: none;">
-                    <h2>Your QR Code</h2>
-                    <div id="qrCode"></div>
-                    <p class="status-text">Waiting for scan...</p>
-                    <div id="loadingIndicator" class="loading-indicator" style="display: none;"></div>
-                </div>
-                <div id="participantResultContainer" style="display: none;">
-                    <h2>Draw Result</h2>
-                    <img id="resultImage" src="" alt="Draw Result" style="max-width: 100%;">
-                    <p id="resultMessage"></p>
+            <div class="qr-card">
+                <div class="main-content">
+                    <div id="qrCodeContainer" style="display: none;">
+                        <div class="qr-display-area">
+                            <div class="qr-corner top-left"></div>
+                            <div class="qr-corner top-right"></div>
+                            <div id="qrCode"></div>
+                            <p class="qr-brand-text">INSTAREVEAL</p>
+                            <div class="qr-corner bottom-left"></div>
+                            <div class="qr-corner bottom-right"></div>
+                        </div>
+                        <p class="status-text">Waiting for scan...</p>
+                        <div id="loadingIndicator" class="loading-indicator" style="display: none;"></div>
+                    </div>
+                    <div id="participantResultContainer" style="display: none;">
+                        <h3>Draw Result</h3>
+                        <img id="resultImage" src="" alt="Draw Result" style="max-width: 100%;">
+                        <p id="resultMessage"></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -39,7 +45,6 @@
                 <button id="scanAgainBtn">Scan Again</button>
             </div>
         </div>
-        <button id="adminPanelBtn" style="margin-top: 20px;">Admin Panel</button>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>

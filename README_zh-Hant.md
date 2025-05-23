@@ -22,7 +22,6 @@
 ├── worker/                     # 後端Cloudflare Worker
 │   ├── src/
 │   │   └── index.js            # Worker腳本（HTTP API邏輯、排程任務，也提供靜態檔案服務）
-│   │   └── index-backup.js     # 包含WebSocket邏輯的原始Worker腳本（供參考）
 │
 ├── .gitignore                  # 指定Git中忽略的檔案
 ├── README.md                   # 專案描述和部署指南（英文版）
@@ -57,6 +56,13 @@ D1資料庫和R2儲存桶的參數直接在Cloudflare上配置，然後在您的
 1.  **創建Cloudflare資源**：
     -   **D1資料庫**：在Cloudflare儀表板中，前往「Workers」>「D1」。創建一個資料庫（例如`instareveal-sessions`）。記下其**ID**。此 D1 資料庫將用於會話資料。
     -   **R2儲存桶（可選，用於獎品圖片）**：前往Cloudflare儀表板中的「R2」。創建一個儲存桶（例如`prize-images`）。記下其**名稱**。此儲存桶將儲存您的獎品圖片。
+
+    1.a. **應用 D1 資料庫結構**：
+    一旦您的 D1 資料庫建立完成，請將 `worker/d1-schema.sql` 中定義的結構應用到它。在終端機中導航到您的 `worker` 目錄並運行：
+    ```bash
+    npx wrangler d1 execute instareveal-sessions --file=./d1-schema.sql
+    ```
+    將 `instareveal-sessions` 替換為您的 D1 資料庫的實際名稱。此步驟將初始化應用程式所需的資料表。
 
 2.  **更新Worker配置（`worker/wrangler.toml`）**：
     -   創建或更新`worker/wrangler.toml`，包含您的Worker設定和資源綁定。此檔案告訴Wrangler如何將您的Worker連接到您創建的Cloudflare資源。
@@ -103,20 +109,12 @@ D1資料庫和R2儲存桶的參數直接在Cloudflare上配置，然後在您的
 
 1.  **訪問管理面板**：導航到 `your-worker-domain.workers.dev/admin`（將 `your-worker-domain.workers.dev` 替換為您部署的 Worker 的 URL）。
 
-2.  **配置 R2 公共端點（KV 設定）**：
-    -   在「獎品圖片設定 (KV)」部分，輸入您的 R2 儲存桶的 **R2 公共端點**（例如 `https://pub-YOUR_ACCOUNT_ID.r2.dev/your-bucket-name`）。此 URL 由 Worker 用於建構圖片路徑。
-    -   點擊「儲存設定到 KV」。此值將儲存在您的 Workers KV 命名空間中。
-
-3.  **上傳和管理 R2 中的圖片**：
+2.  **管理 R2 中的獎品圖片**：
     -   在「管理 R2 圖片」部分：
         -   **上傳圖片**：點擊「選擇檔案」從您的電腦中選擇一個或多個圖片檔案。然後，點擊「上傳選定的圖片到 R2」將它們直接上傳到您配置的 R2 儲存桶。
-        -   **列出圖片**：R2 中的「當前圖片」部分將自動顯示在您的 R2 儲存桶中找到的圖片。
+        -   **列出圖片**：R2 中的「當前圖片」部分將自動顯示在您的 R2 儲存桶中找到的圖片。R2 公共端點由 Worker 使用環境變數（`CLOUDFLARE_ACCOUNT_ID` 和 `PRIZE_IMAGE_BUCKET_NAME`）動態建構。
         -   **刪除圖片**：對於每個列出的圖片，您將看到一個「刪除」按鈕。點擊它以從您的 R2 儲存桶中刪除圖片。
     -   **重要**：如果您希望圖片通過其公共 URL 直接訪問，請確保您的 R2 儲存桶已配置為公開訪問。
-
-4.  **更新獎品圖片檔案名稱（KV 設定）**：
-    -   在 R2 中上傳或管理圖片後，更新「獎品圖片檔案名稱（逗號分隔）」欄位，位於「獎品圖片設定 (KV)」部分。輸入您希望用於抽獎的圖片的確切檔案名稱，用逗號分隔（例如 `prizeA.png, prizeB.png, prizeC.png`）。這些檔案名稱必須與您已上傳到 R2 的圖片的鍵相符。
-    -   點擊「儲存設定到 KV」。這些檔案名稱將儲存在您的 Workers KV 命名空間中，並在 Worker 選擇獎品時使用。
 
 ### 測試部署
 

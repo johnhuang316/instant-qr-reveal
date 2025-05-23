@@ -5,22 +5,32 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+    background-color: #fcf8e3; /* Light cream/yellowish background */
     color: #333;
 }
 
 #app {
     text-align: center;
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    width: 90%;
-    max-width: 600px;
-    min-width: 380px; /* Adjusted to ensure QR code + padding fits (300px + 2*30px = 360px) */
+    width: 80vw; /* Use viewport width for responsiveness */
+    max-width: 800px; /* Increased max-width */
+    min-width: 320px; /* Adjusted minimum width for smaller screens */
     box-sizing: border-box;
-    position: relative; /* For admin button positioning */
+    position: relative;
 }
+
+/* Styles for the minimalist QR card */
+.qr-card {
+    background: transparent; /* Removed white background */
+    padding: 0; /* Removed padding */
+    border-radius: 0; /* Removed border-radius */
+    box-shadow: none; /* Removed shadow */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Removed .business-logo, #businessName, #businessDescription styles */
 
 h1 {
     color: #0056b3;
@@ -73,16 +83,78 @@ button:active {
 
 /* Specific styles for participant interface */
 .main-content {
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .subtitle {
+    /* This class is no longer used in index.html, can be removed if not used elsewhere */
     font-size: 1.2em;
     color: #666;
     margin-bottom: 25px;
+}
+
+/* New styles for QR display area and corners */
+.qr-display-area {
+    position: relative;
+    display: inline-block; /* To contain absolutely positioned corners */
+    width: 90%; /* Make it responsive */
+    max-width: 400px; /* Max size for larger screens */
+    padding: 0; /* Removed padding from here */
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box; /* Include padding in width/height */
+}
+
+.qr-corner {
+    position: absolute;
+    width: 2em; /* Responsive length of the corner lines */
+    height: 2em;
+    border: 0.2em solid #333; /* Responsive dark border for corners */
+}
+
+.qr-corner.top-left {
+    top: 0;
+    left: 0;
+    border-right: none;
+    border-bottom: none;
+    border-top-left-radius: 5px;
+}
+
+.qr-corner.top-right {
+    top: 0;
+    right: 0;
+    border-left: none;
+    border-bottom: none;
+    border-top-right-radius: 5px;
+}
+
+.qr-corner.bottom-left {
+    bottom: 0;
+    left: 0;
+    border-right: none;
+    border-top: none;
+    border-bottom-left-radius: 5px;
+}
+
+.qr-corner.bottom-right {
+    bottom: 0;
+    right: 0;
+    border-left: none;
+    border-top: none;
+    border-bottom-right-radius: 5px;
+}
+
+.qr-brand-text {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #e74c3c; /* Instagram-like pink/red color */
+    margin-top: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .status-text {
@@ -94,10 +166,10 @@ button:active {
 
 #qrCodeContainer {
     margin-top: 30px;
-    padding: 30px; /* Increased padding for more space around QR code */
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    padding: 20px; /* Added padding here to create space around the entire QR code area */
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -105,12 +177,15 @@ button:active {
 }
 
 #qrCode {
-    margin: 20px auto;
-    /* Removed max-width/height as size is now dynamic via JS */
-    border: 2px solid #ddd;
-    border-radius: 5px;
+    width: 80vw; /* Responsive width based on viewport */
+    height: 80vw; /* Responsive height based on viewport */
+    max-width: 300px; /* Max size for larger screens */
+    max-height: 300px; /* Max size for larger screens */
+    aspect-ratio: 1 / 1; /* Ensure it's always square */
+    margin: 0 auto; /* Center it */
     overflow: hidden; /* Ensure QR code fits */
-    aspect-ratio: 1 / 1; /* Ensure the QR code container is always square */
+    box-sizing: border-box; /* Include padding/border in dimensions */
+    display: block; /* Ensure it behaves as a block element */
 }
 
 #qrCode svg {

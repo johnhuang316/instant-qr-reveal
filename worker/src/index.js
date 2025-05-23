@@ -105,19 +105,14 @@ export default {
   },
 };
 
-// KV key for storing prize settings (no longer used for R2 endpoint or image keys)
-const PRIZE_SETTINGS_KV_KEY = 'config:prize_settings'; // Still exists for potential future settings
 
 async function handleGetSettings(env) {
-  // This function can be repurposed for other KV-based settings if needed.
-  // R2 endpoint and image keys are now dynamically derived or managed via R2 APIs.
-  return new Response(JSON.stringify({}), { // Return empty for now
+  return new Response(JSON.stringify({}), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 async function handleSaveSettings(request, env) {
-  // This function can be repurposed for other KV-based settings if needed.
   return new Response(JSON.stringify({ status: "success", message: "No settings to save via this endpoint" }), {
     headers: { 'Content-Type': 'application/json' },
   });

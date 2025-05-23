@@ -22,7 +22,6 @@ The InstaReveal QR Draw System is designed with a front-end/back-end separated a
 ├── worker/                     # Backend Cloudflare Worker
 │   ├── src/
 │   │   └── index.js            # Worker script (HTTP API logic, scheduled tasks, serves static files)
-│   │   └── index-backup.js     # Original Worker script with WebSocket logic (for reference)
 │
 ├── .gitignore                  # Specifies files to ignore in Git
 ├── README.md                   # Project description and deployment guide (English)
@@ -57,6 +56,13 @@ The parameters for D1 Databases and R2 Buckets are configured directly on Cloudf
 1.  **Create Cloudflare Resources**:
     -   **D1 Database**: In the Cloudflare Dashboard, go to "Workers" > "D1". Create a database (e.g., `instareveal-sessions`). Note its **ID**. This D1 database will be used for session data.
     -   **R2 Bucket (Optional for Prize Images)**: Go to "R2" in the Cloudflare Dashboard. Create a bucket (e.g., `prize-images`). Note its **name**. This bucket will store your prize images.
+
+    1.a. **Apply D1 Database Schema**:
+    Once your D1 database is created, apply the schema defined in `worker/d1-schema.sql` to it. Navigate to your `worker` directory in the terminal and run:
+    ```bash
+    npx wrangler d1 execute instareveal-sessions --file=./d1-schema.sql
+    ```
+    Replace `instareveal-sessions` with the actual name of your D1 database. This step initializes the necessary tables for your application.
 
 2.  **Update Worker Configuration (`worker/wrangler.toml`)**:
     -   Create or update `worker/wrangler.toml` with your Worker settings and resource bindings. This file tells Wrangler how to connect your Worker to the Cloudflare resources you created.
@@ -103,20 +109,12 @@ After deploying the Worker, you can manage your prize images and configure the R
 
 1.  **Access Admin Panel**: Navigate to `your-worker-domain.workers.dev/admin` (replace `your-worker-domain.workers.dev` with your deployed Worker's URL).
 
-2.  **Configure R2 Public Endpoint (KV Setting)**:
-    -   In the "Prize Image Settings (KV)" section, enter the **R2 Public Endpoint** for your R2 bucket (e.g., `https://pub-YOUR_ACCOUNT_ID.r2.dev/your-bucket-name`). This URL is used by the Worker to construct image paths.
-    -   Click "Save Settings to KV". This value will be stored in your Workers KV namespace.
-
-3.  **Upload and Manage Images in R2**:
+2.  **Manage Prize Images in R2**:
     -   In the "Manage R2 Images" section:
         -   **Upload Images**: Click "Choose Files" to select one or more image files from your computer. Then, click "Upload Selected Images to R2" to directly upload them to your configured R2 bucket.
-        -   **List Images**: The "Current Images in R2" section will automatically display images found in your R2 bucket.
+        -   **List Images**: The "Current Images in R2" section will automatically display images found in your R2 bucket. The R2 public endpoint is dynamically constructed by the Worker using environment variables (`CLOUDFLARE_ACCOUNT_ID` and `PRIZE_IMAGE_BUCKET_NAME`).
         -   **Delete Images**: For each listed image, you will see a "Delete" button. Click it to remove the image from your R2 bucket.
     -   **Important**: Ensure your R2 bucket is configured for public access if you want the images to be directly accessible via their public URLs.
-
-4.  **Update Prize Image Filenames (KV Setting)**:
-    -   After uploading or managing images in R2, update the "Prize Image Filenames (comma-separated)" field in the "Prize Image Settings (KV)" section. Enter the exact filenames of the images you want to use for the draw, separated by commas (e.g., `prizeA.png, prizeB.png, prizeC.png`). These filenames must match the keys of the images you've uploaded to R2.
-    -   Click "Save Settings to KV". These filenames will be stored in your Workers KV namespace and used by the Worker when selecting a prize.
 
 ### Testing the Deployment
 

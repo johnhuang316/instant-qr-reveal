@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let scanning = false;
     
     // DOM elements for participant interface
-    const participantInterface = document.getElementById('participant');
+    const participantInterface = document.getElementById('participantInterface');
     const generateQrBtn = document.getElementById('generateQrBtn');
     const qrCodeContainer = document.getElementById('qrCodeContainer');
     const qrCode = document.getElementById('qrCode');
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultImage = document.getElementById('resultImage');
     const resultMessage = document.getElementById('resultMessage');
     const generateAgainBtn = document.getElementById('generateAgainBtn');
-    const adminPanelBtn = document.getElementById('adminPanelBtn'); // Get the new admin button
     const statusText = document.querySelector('#qrCodeContainer .status-text'); // Get status text element
     const loadingIndicator = document.getElementById('loadingIndicator'); // Get loading indicator element
     
@@ -32,26 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (path === '/operator' || path === '/operator/') {
         participantInterface.style.display = 'none';
         operatorInterface.style.display = 'block';
-        adminPanelBtn.style.display = 'block'; // Show admin button
         document.title = 'InstaReveal QR Draw - Operator';
     } else if (path === '/admin' || path === '/admin/') {
         // This path is handled by admin.html directly, but ensure main interfaces are hidden
         participantInterface.style.display = 'none';
         operatorInterface.style.display = 'none';
-        adminPanelBtn.style.display = 'none'; // Hide admin button on admin page itself
         // The admin.html will load its own admin.js
     }
     else {
         participantInterface.style.display = 'block';
         operatorInterface.style.display = 'none';
-        adminPanelBtn.style.display = 'block'; // Show admin button
         document.title = 'InstaReveal QR Draw - Participant';
     }
-
-    // Event listener for the admin panel button
-    adminPanelBtn.addEventListener('click', () => {
-        window.location.href = '/admin';
-    });
     
     // Operator functionality (QR code scanning)
     startScanBtn.addEventListener('click', async () => {
@@ -144,14 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to generate QR code and establish WebSocket connection
     async function generateQrCodeAndConnect() {
+        console.log('generateQrCodeAndConnect called.');
         let sessionId = localStorage.getItem(SESSION_ID_KEY);
 
         try {
             // Show loading indicator and update status text
             loadingIndicator.style.display = 'block';
             statusText.textContent = 'Generating QR Code...';
+            console.log('Loading indicator shown, status text updated.');
 
             if (!sessionId) {
+                console.log('No existing session ID found, requesting from backend.');
                 // Request session ID from backend if not found in localStorage
                 const response = await fetch('/api/generate-qr-session', {
                     method: 'POST',
@@ -172,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('Session ID not received from backend.');
                 }
                 localStorage.setItem(SESSION_ID_KEY, sessionId); // Store new session ID
+                console.log('New session ID obtained and stored:', sessionId);
             } else {
                 console.log('Reusing session ID from localStorage:', sessionId);
             }
@@ -185,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (statusData.status === 1 && statusData.imageUrl) { // 1 for drawn, use imageUrl
                     // Session already drawn, display result immediately
                     resultImage.src = statusData.imageUrl;
-                    resultMessage.textContent = 'Congratulations! Here is your prize!';
                     qrCodeContainer.style.display = 'none';
                     participantResultContainer.style.display = 'block';
                     loadingIndicator.style.display = 'none'; // Hide loading indicator
@@ -196,43 +190,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show QR code container
             qrCodeContainer.style.display = 'block';
+            console.log('QR code container set to display: block.');
 
             // Generate QR Code with session ID
             qrCode.innerHTML = ''; // Clear previous QR code
-            console.log('Session ID used:', sessionId); // Log session ID for debugging
+            console.log('Session ID used for QR code generation:', sessionId); // Log session ID for debugging
 
             if (typeof QRCodeStyling === 'undefined') {
                 throw new Error('QRCodeStyling library not loaded. Check network or script tag.');
             }
+            console.log('QRCodeStyling library is loaded.');
 
-            // Calculate dynamic QR code size based on container width
-            const computedStyle = window.getComputedStyle(qrCodeContainer);
-            const paddingLeft = parseFloat(computedStyle.paddingLeft);
-            const paddingRight = parseFloat(computedStyle.paddingRight);
-            const paddingTop = parseFloat(computedStyle.paddingTop);
-            const paddingBottom = parseFloat(computedStyle.paddingBottom);
+            // Use setTimeout to ensure qrCode element has rendered and has a clientWidth
+            setTimeout(() => {
+                // Calculate dynamic QR code size based on the actual rendered width of the qrCode element
+                // This ensures the QR code is drawn with a concrete pixel size that fits its container.
+                const qrCodePixelSize = qrCode.clientWidth; 
+                const finalQrCodeSize = Math.max(qrCodePixelSize - 60, 100); // Subtract an even larger buffer to prevent clipping
+                console.log('Calculated QR code pixel size:', finalQrCodeSize);
 
-            const qrCodeSize = Math.min(
-                qrCodeContainer.offsetWidth - paddingLeft - paddingRight,
-                qrCodeContainer.offsetHeight - paddingTop - paddingBottom
-            ) - 20; // Subtract 20px buffer
-
-            const finalQrCodeSize = Math.max(qrCodeSize, 100); // Minimum 100px
-
-            const qrCodeInstance = new QRCodeStyling({
-                data: sessionId,
-                width: finalQrCodeSize, // Dynamic width
-                height: finalQrCodeSize, // Dynamic height
-                type: "svg"
-            });
-            
-            // Append the QR code to the div
-            qrCodeInstance.append(qrCode);
-            console.log('QRCodeStyling append called with size:', finalQrCodeSize);
+                const qrCodeInstance = new QRCodeStyling({
+                    data: sessionId,
+                    width: finalQrCodeSize, // Dynamic width in pixels
+                    height: finalQrCodeSize, // Dynamic height in pixels
+                    type: "svg",
+                    backgroundOptions: {
+                        color: "transparent" // Set QR code background to transparent
+                    }
+                });
+                
+                // Append the QR code to the div
+                qrCodeInstance.append(qrCode);
+                console.log('QRCodeStyling appended with calculated pixel size:', finalQrCodeSize);
+            }, 0); // Use setTimeout with 0 delay to defer execution
             
             // Update status text and hide loading indicator after QR code is generated
             statusText.textContent = 'Waiting for scan...';
             loadingIndicator.style.display = 'none';
+            console.log('Status text updated, loading indicator hidden.');
 
             // Start polling for session status
             let pollTimeout;
@@ -265,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         qrCodeContainer.style.display = 'none';
                         localStorage.removeItem(SESSION_ID_KEY);
                         loadingIndicator.style.display = 'none'; // Hide loading indicator
+                        console.log('Polling successful, result displayed.');
                     } else if (statusData.status === 2) {
                         // Stop polling on error
                         clearTimeout(pollTimeout);
