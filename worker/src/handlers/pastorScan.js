@@ -29,13 +29,13 @@ export async function handlePastorScan(request, env) {
         }
 
         // Dynamically construct the R2 public endpoint
-        const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+        const urlId = env.CLOUDFLARE_R2_URL_ID;
         const bucketName = env.PRIZE_IMAGE_BUCKET_NAME;
 
-        if (!accountId || !bucketName) {
+        if (!urlId || !bucketName) {
             return new Response(JSON.stringify({ status: 2, message: "Cloudflare Account ID or R2 Bucket Name not configured as environment variables." }), { status: 500, headers: { 'Content-Type': 'application/json' } }); // 2 for error
         }
-        const r2PublicEndpoint = `https://pub-${accountId}.r2.dev`;
+        const r2PublicEndpoint = `https://pub-${urlId}.r2.dev`;
 
         // Execute draw
         const selectedImageKey = prizeImageKeys[Math.floor(Math.random() * prizeImageKeys.length)];

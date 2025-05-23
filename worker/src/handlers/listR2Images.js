@@ -1,9 +1,7 @@
 // worker/src/handlers/listR2Images.js
-export async function handleListR2Images(env) {
+export async function handleListR2Images(request,env) {
     try {
-        // User requested to pass account_id, though R2Bucket.list() does not take it.
-        // This is for demonstration purposes to show the method signature is incorrect.
-        const listed = await env.PRIZE_IMAGE_BUCKET.list();
+        const listed = await env.PRIZE_IMAGE_BUCKET.list(); // Removed incorrect 'account_id' parameter
         const images = listed.objects.map(obj => obj.key);
         return new Response(JSON.stringify({ images }), {
             headers: { 'Content-Type': 'application/json' },

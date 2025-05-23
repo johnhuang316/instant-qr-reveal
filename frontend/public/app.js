@@ -1,9 +1,28 @@
 // Main JavaScript for unified InstaReveal QR Draw application
 document.addEventListener('DOMContentLoaded', () => {
+    const SESSION_ID_KEY = 'qrSessionId'; // Key for storing session ID in localStorage
+
     // DOM elements for operator interface
     const operatorInterface = document.getElementById('operatorInterface');
+    const startScanBtn = document.getElementById('startScanBtn');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const cameraPreview = document.getElementById('cameraPreview');
+    const scanStatus = document.getElementById('scanStatus');
+    const operatorResultContainer = document.getElementById('operatorResultContainer');
+    const scanResultMessage = document.getElementById('scanResultMessage');
+    const scanAgainBtn = document.getElementById('scanAgainBtn');
+    let stream = null;
+    let scanning = false;
+    
     // DOM elements for participant interface
     const participantInterface = document.getElementById('participantInterface');
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    const qrCode = document.getElementById('qrCode');
+    const participantResultContainer = document.getElementById('participantResultContainer');
+    const resultImage = document.getElementById('resultImage');
+    const resultMessage = document.getElementById('resultMessage');
+    const statusText = document.querySelector('#qrCodeContainer .status-text'); // Get status text element
+    const loadingIndicator = document.getElementById('loadingIndicator'); // Get loading indicator element
     
     // Check URL path to determine which interface to show
     const path = window.location.pathname;

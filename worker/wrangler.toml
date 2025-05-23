@@ -6,12 +6,12 @@ compatibility_date = "2023-10-01"
 [[d1_databases]]
 binding = "SESSIONS_DB" # This is the variable name used in your Worker script (e.g., env.SESSIONS_DB)
 database_name = "instareveal-sessions"
-database_id = "85f50e54-e9be-4545-9728-cf764a552f87"  # Replace with the actual ID after creating D1 database
+database_id = "0361b923-3016-4d77-8891-b737a129b034"  # Replace with the actual ID after creating D1 database
 
 # Bind an R2 bucket for prize images (optional)
 [[r2_buckets]]
 binding = "PRIZE_IMAGE_BUCKET" # This is the variable name used in your Worker script (e.g., env.PRIZE_IMAGE_BUCKET)
-bucket_name = "prize-images" # Replace with the actual name from Cloudflare Dashboard
+bucket_name = "instareveal-images" # Replace with the actual name from Cloudflare Dashboard
 
 # Specify the directory for static assets (frontend files)
 [assets]
@@ -19,8 +19,10 @@ directory = "../frontend/public"
 
 # Environment variables for R2 public endpoint derivation
 [vars]
-CLOUDFLARE_ACCOUNT_ID = "6e90235e8b084448965e2f1afd51bb3a" # Replace with your actual Cloudflare Account ID
-PRIZE_IMAGE_BUCKET_NAME = "prize-images" # Ensure this matches the bucket_name above
+CLOUDFLARE_ACCOUNT_ID = "c7ff9f19bdb25c77593ee44c98517e07" # Replace with your actual Cloudflare Account ID
+PRIZE_IMAGE_BUCKET_NAME = "instareveal-images" # Ensure this matches the bucket_name above
+CLOUDFLARE_R2_URL_ID = "764bf9733ecb45dea34a128e2f44b632" # Replace with your actual Cloudflare Account ID
+
 
 # Scheduled cleanup trigger
 [triggers]
