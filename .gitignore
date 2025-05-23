@@ -94,6 +94,7 @@ Desktop.ini
 .wrangler/
 dist/
 .mf/
+worker/wrangler.toml
 
 # Code Index MCP cache directory
 .code_indexer/

@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         resultImage.src = statusData.imageUrl;
                         resultMessage.textContent = 'Congratulations! Here is your prize!';
                         qrCodeContainer.style.display = 'none';
-                        localStorage.removeItem(SESSION_ID_KEY);
+                        // localStorage.removeItem(SESSION_ID_KEY); // Removed to persist session for the day
                         loadingIndicator.style.display = 'none'; // Hide loading indicator
                         console.log('Polling successful, result displayed.');
                     } else if (statusData.status === 2) {
