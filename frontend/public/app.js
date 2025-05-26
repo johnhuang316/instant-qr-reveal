@@ -19,10 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const qrCodeContainer = document.getElementById('qrCodeContainer');
     const qrCode = document.getElementById('qrCode');
     const participantResultContainer = document.getElementById('participantResultContainer');
-    const resultImage = document.getElementById('resultImage');
-    const resultMessage = document.getElementById('resultMessage');
-    const statusText = document.querySelector('#qrCodeContainer .status-text'); // Get status text element
-    const loadingIndicator = document.getElementById('loadingIndicator'); // Get loading indicator element
+const resultImage = document.getElementById('resultImage');
+const resultMessage = document.getElementById('resultMessage');
+const downloadImageBtn = document.getElementById('downloadImageBtn'); // Get download button element
+const statusText = document.querySelector('#qrCodeContainer .status-text'); // Get status text element
+const loadingIndicator = document.getElementById('loadingIndicator'); // Get loading indicator element
     
     // Check URL path to determine which interface to show
     const path = window.location.pathname;
@@ -180,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     resultImage.src = statusData.imageUrl;
                     qrCodeContainer.style.display = 'none';
                     participantResultContainer.style.display = 'block';
+                    downloadImageBtn.style.display = 'block'; // Show download button
                     loadingIndicator.style.display = 'none'; // Hide loading indicator
                     console.log('Session already drawn, displaying result.');
                     return; // Exit function, no need for QR code or polling
@@ -252,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         participantResultContainer.style.display = 'block';
                         resultImage.src = statusData.imageUrl;
                         resultMessage.textContent = 'Congratulations! Here is your prize!';
+                        downloadImageBtn.style.display = 'block'; // Show download button
                         qrCodeContainer.style.display = 'none';
                         // localStorage.removeItem(SESSION_ID_KEY); // Removed to persist session for the day
                         loadingIndicator.style.display = 'none'; // Hide loading indicator
@@ -318,5 +321,31 @@ document.addEventListener('DOMContentLoaded', () => {
         generateQrCodeAndConnect();
     }
     
+    // Download image functionality
+    downloadImageBtn.addEventListener('click', async () => {
+        const imageUrl = resultImage.src;
+        if (imageUrl) {
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                // Extract filename from URL or use a default
+                const filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1) || 'prize_image.png';
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url); // Clean up the object URL
+            } catch (error) {
+                console.error('Error downloading image:', error);
+                alert('圖片下載失敗，請稍後再試。');
+            }
+        } else {
+            console.warn('No image URL found to download.');
+        }
+    });
 
 });
